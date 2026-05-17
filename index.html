@@ -56,7 +56,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;height:100vh;display:flex;flex-
 <body>
 <div id="header">
   <div>
-    <h1 id="hdr-title">📍 SA París — Tauler d'Itineraris</h1>
+    <h1 id="hdr-title">SA Paris — Tauler d'Itineraris</h1>
     <div class="sub" id="hdr-sub"></div>
   </div>
   <div class="stats" id="stats"></div>
@@ -75,28 +75,25 @@ body{font-family:'Segoe UI',system-ui,sans-serif;height:100vh;display:flex;flex-
 <script>
 (function() {
 
-// ── Títols dinàmics des de CONFIG ─────────────────────────────────────────────
-document.getElementById('page-title').textContent = 'SA París ' + CONFIG.any + ' — Tauler d\'Itineraris';
-document.getElementById('hdr-title').textContent  = '📍 SA París ' + CONFIG.any + ' · Tauler d\'Itineraris';
-document.getElementById('hdr-sub').textContent    = CONFIG.escola + ' · ' + CONFIG.viatge;
+document.getElementById('page-title').textContent = 'SA Paris ' + CONFIG.any + ' - Tauler d\'Itineraris';
+document.getElementById('hdr-title').textContent  = 'SA Paris ' + CONFIG.any + ' - Tauler d\'Itineraris';
+document.getElementById('hdr-sub').textContent    = CONFIG.escola + ' - ' + CONFIG.viatge;
 
-// ── Stats dinàmics ────────────────────────────────────────────────────────────
 var done  = ITINERARIS_DATA.filter(function(d){ return d.status === 'done'; }).length;
 var pend  = ITINERARIS_DATA.filter(function(d){ return d.status === 'pending'; }).length;
 var total = ITINERARIS_DATA.length;
 var pct   = Math.round(done / total * 100);
 
 document.getElementById('stats').innerHTML =
-  '<div class="pill pill-done">✅ ' + done + ' completats</div>' +
-  '<div class="pill pill-pend">⏳ ' + pend + ' pendents</div>' +
+  '<div class="pill pill-done">OK ' + done + ' completats</div>' +
+  '<div class="pill pill-pend">... ' + pend + ' pendents</div>' +
   '<div class="pill pill-pct">' + pct + '%</div>';
-document.getElementById('head-done').textContent = '✅ Itineraris completats (' + done + ')';
-document.getElementById('head-pend').textContent = '⏳ Pendents de generar (' + pend + ')';
+document.getElementById('head-done').textContent = 'Itineraris completats (' + done + ')';
+document.getElementById('head-pend').textContent = 'Pendents de generar (' + pend + ')';
 
-// ── Mapa ──────────────────────────────────────────────────────────────────────
 var leafletMap = L.map('map').setView([48.860, 2.347], 13);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '© <a href="https://www.openstreetmap.org">OpenStreetMap</a>',
+  attribution: 'OpenStreetMap',
   maxZoom: 19
 }).addTo(leafletMap);
 
@@ -122,8 +119,8 @@ function makePendingIcon(num) {
 function makePopup(d) {
   var stopsHtml = (d.stops || []).map(function(s){ return '<li>' + s + '</li>'; }).join('');
   var statusHtml = d.status === 'done'
-    ? '<span class="pop-status ps-done">✅ Plantilla A · B · KML generats</span>'
-    : '<span class="pop-status ps-pend">⏳ Pendent de generar</span>';
+    ? '<span class="pop-status ps-done">Plantilla A + B + KML generats</span>'
+    : '<span class="pop-status ps-pend">Pendent de generar</span>';
   return '<div class="pop-head" style="background:' + (d.color || '#6b7280') + '">' +
     '<div class="pop-num">Itinerari ' + d.num + '</div>' +
     '<div class="pop-title">' + d.titol + '</div>' +
@@ -141,7 +138,6 @@ function zoomTo(d) {
   document.querySelectorAll('.itin-item').forEach(function(el){ el.classList.remove('active'); });
   var el = document.getElementById('item-' + d.num);
   if (el) { el.classList.add('active'); el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
-
   if (d.status === 'done' && d.route) {
     leafletMap.fitBounds(L.latLngBounds(d.route), { padding: [40, 40] });
     if (layers[d.num] && layers[d.num].polyline) layers[d.num].polyline.openPopup();
@@ -151,9 +147,82 @@ function zoomTo(d) {
   }
 }
 
-// ── Icones SVG ull ────────────────────────────────────────────────────────────
-var eyeOpen   = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
-var eyeClosed = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
-
 function toggleVisibility(num, btn) {
-  var d = ITINERARIS_DATA.filter(function(x){ return x.num === n
+  var d = ITINERARIS_DATA.filter(function(x){ return x.num === num; })[0];
+  var item = document.getElementById('item-' + num);
+  visibility[num] = !visibility[num];
+  var show = visibility[num];
+  if (d.status === 'done') {
+    var lyr = layers[num];
+    if (show) {
+      if (lyr.polyline) leafletMap.addLayer(lyr.polyline);
+      if (lyr.markers) lyr.markers.forEach(function(m){ leafletMap.addLayer(m); });
+    } else {
+      if (lyr.polyline) leafletMap.removeLayer(lyr.polyline);
+      if (lyr.markers) lyr.markers.forEach(function(m){ leafletMap.removeLayer(m); });
+    }
+  } else {
+    var mk = layers[num] && layers[num].marker;
+    if (mk) { if (show) leafletMap.addLayer(mk); else leafletMap.removeLayer(mk); }
+  }
+  btn.textContent = show ? 'O' : '-';
+  btn.classList.toggle('hidden', !show);
+  btn.title = show ? 'Amaga al mapa' : 'Mostra al mapa';
+  if (item) item.classList.toggle('layer-hidden', !show);
+}
+
+ITINERARIS_DATA.forEach(function(d) {
+  layers[d.num] = {};
+  visibility[d.num] = true;
+  if (d.status === 'done') {
+    var poly = L.polyline(d.route, { color: d.color, weight: 4, opacity: .85 }).addTo(leafletMap);
+    poly.bindPopup(makePopup(d), { maxWidth: 270 });
+    poly.on('click', function(){ zoomTo(d); });
+    layers[d.num].polyline = poly;
+    layers[d.num].markers = [];
+    d.route.forEach(function(coord, i) {
+      var mk = L.marker(coord, { icon: makeStopIcon(d.color, i) }).addTo(leafletMap);
+      mk.bindTooltip(d.stops && d.stops[i] ? d.stops[i] : 'Punt ' + i, { direction: 'top', offset: [0, -8] });
+      mk.on('click', function(){ poly.openPopup(); zoomTo(d); });
+      layers[d.num].markers.push(mk);
+    });
+  } else {
+    var mk = L.marker(d.center, { icon: makePendingIcon(d.num) }).addTo(leafletMap);
+    mk.bindPopup(makePopup(d), { maxWidth: 270 });
+    layers[d.num].marker = mk;
+    mk.on('click', function(){ zoomTo(d); });
+  }
+});
+
+var listDone = document.getElementById('list-done');
+var listPend = document.getElementById('list-pend');
+
+ITINERARIS_DATA.forEach(function(d) {
+  var div = document.createElement('div');
+  div.className = 'itin-item';
+  div.id = 'item-' + d.num;
+  var dotStyle = d.status === 'done' ? 'background:' + d.color : 'background:#e2e8f0;border:2px dashed #94a3b8';
+  div.innerHTML =
+    '<div class="dot" style="' + dotStyle + '"></div>' +
+    '<div class="itin-info">' +
+      '<div class="itin-num">Itinerari ' + d.num + '</div>' +
+      '<div class="itin-title">' + d.titol + '</div>' +
+      '<div class="itin-arr">' + d.arr + '</div>' +
+    '</div>' +
+    '<button class="eye-btn" title="Amaga al mapa">O</button>' +
+    '<div class="badge ' + (d.status === 'done' ? 'b-done' : 'b-pend') + '">' + (d.status === 'done' ? 'OK' : '...') + '</div>';
+
+  var eyeBtn = div.querySelector('.eye-btn');
+  (function(num, btn) {
+    btn.addEventListener('click', function(e) { e.stopPropagation(); toggleVisibility(num, btn); });
+  })(d.num, eyeBtn);
+
+  div.addEventListener('click', function(){ zoomTo(d); });
+  if (d.status === 'done') listDone.appendChild(div);
+  else listPend.appendChild(div);
+});
+
+})();
+</script>
+</body>
+</html>
