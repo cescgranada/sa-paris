@@ -102,5 +102,10 @@ const ITINERARIS_DATA = [
   {num:12, status:'pending', titol:'La Coulée Verte',                    arr:'12è',       center:[48.849,2.378],  note:'Referència: Base.docx'},
   {num:13, status:'pending', titol:'Le nouveau boulevard du street art', arr:'20è / 11è', center:[48.865,2.385],  note:'Referència: Base.docx'},
   {num:15, status:'pending', titol:'BNF – Bercy Village',                arr:'12è / 13è', center:[48.834,2.377],  note:'Referència: Base.docx'},
-  {num:16, status:'pending', titol:'El Codi Da Vinci',                   arr:'1r / 6è',   center:[48.857,2.335],  note:'Nou (2025)'},
+  {num:16, status:'done', color:'#B91C1C',
+   titol:'El Codi Da Vinci',
+   subtitol:'El thriller que va fer dubtar el món — i que París desmenteix punt per punt',
+   arr:'1r / 6è',
+   stops:['Musée du Louvre — Pyramide','Pyramide Inversée (Carrousel du Louvre)','Jardin des Tuileries','Pont Royal — creuem el Sena','Eglíse Saint-Germain-des-Prés','Eglise Saint-Sulpice — La Rosa Línea'],
+   route:[[48.8606,2.3376],[48.8637,2.3348],[48.8636,2.3244],[48.8601,2.3296],[48.8539,2.3329],[48.8512,2.3347]]},
 ];
