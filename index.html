@@ -30,6 +30,12 @@ body{font-family:'Segoe UI',system-ui,sans-serif;height:100vh;display:flex;flex-
 .badge{font-size:10px;padding:2px 7px;border-radius:10px;flex-shrink:0;margin-top:3px;font-weight:600}
 .b-done{background:#d1fae5;color:#065f46}
 .b-pend{background:#f1f5f9;color:#94a3b8}
+.eye-btn{background:none;border:none;cursor:pointer;padding:2px 3px;border-radius:4px;flex-shrink:0;opacity:.55;transition:opacity .15s,background .15s;line-height:1;margin-top:1px}
+.eye-btn:hover{opacity:1;background:#f0f9ff}
+.eye-btn.hidden{opacity:.25}
+.itin-item.layer-hidden .dot{opacity:.3}
+.itin-item.layer-hidden .itin-title{color:#94a3b8}
+.itin-item.layer-hidden .itin-arr{color:#cbd5e1}
 #map{flex:1}
 .leaflet-popup-content-wrapper{border-radius:10px;padding:0;overflow:hidden;max-width:270px;box-shadow:0 4px 20px rgba(0,0,0,0.2)}
 .leaflet-popup-content{margin:0;line-height:1}
@@ -144,18 +150,22 @@ function zoomTo(d) {
 }
 
 // Renderitza capes
+const visibility = {};
 ITINERARIS_DATA.forEach(d => {
   layers[d.num] = {};
+  visibility[d.num] = true;
   if (d.status === 'done') {
     const poly = L.polyline(d.route, { color: d.color, weight: 4, opacity: .85 }).addTo(map);
     poly.bindPopup(makePopup(d), { maxWidth: 270 });
     poly.on('click', () => zoomTo(d));
     layers[d.num].polyline = poly;
+    layers[d.num].markers = [];
 
     d.route.forEach((coord, i) => {
       const m = L.marker(coord, { icon: makeStopIcon(d.color, i) }).addTo(map);
       m.bindTooltip(d.stops?.[i] ?? `Punt ${i}`, { direction: 'top', offset: [0, -8] });
       m.on('click', () => { poly.openPopup(); zoomTo(d); });
+      layers[d.num].markers.push(m);
     });
   } else {
     const m = L.marker(d.center, { icon: makePendingIcon(d.num) }).addTo(map);
@@ -165,26 +175,14 @@ ITINERARIS_DATA.forEach(d => {
   }
 });
 
-// Renderitza sidebar
-const listDone = document.getElementById('list-done');
-const listPend = document.getElementById('list-pend');
+function toggleVisibility(num, btn) {
+  const d = ITINERARIS_DATA.find(x => x.num === num);
+  const item = document.getElementById('item-' + num);
+  visibility[num] = !visibility[num];
+  const show = visibility[num];
 
-ITINERARIS_DATA.forEach(d => {
-  const div = document.createElement('div');
-  div.className = 'itin-item';
-  div.id = 'item-' + d.num;
-  div.innerHTML = `
-    <div class="dot" style="${d.status === 'done' ? 'background:' + d.color : 'background:#e2e8f0;border:2px dashed #94a3b8'}"></div>
-    <div class="itin-info">
-      <div class="itin-num">Itinerari ${d.num}</div>
-      <div class="itin-title">${d.titol}</div>
-      <div class="itin-arr">${d.arr}</div>
-    </div>
-    <div class="badge ${d.status === 'done' ? 'b-done' : 'b-pend'}">${d.status === 'done' ? '✅' : '⏳'}</div>`;
-  div.addEventListener('click', () => zoomTo(d));
-  if (d.status === 'done') listDone.appendChild(div);
-  else listPend.appendChild(div);
-});
-</script>
-</body>
-</html>
+  if (d.status === 'done') {
+    const L_ = layers[num];
+    if (show) {
+      L_.polyline && map.addLayer(L_.polyline);
+      L_.markers?.forEach(m => 
