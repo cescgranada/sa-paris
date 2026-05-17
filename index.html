@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="page-title">SA París — Tauler d'Itineraris</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden;background:#f0f4f8}
+#header{background:#1e3a5f;color:white;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,0.3)}
+#header h1{font-size:16px;font-weight:700;letter-spacing:.5px}
+#header .sub{font-size:11px;color:#93c5fd;margin-top:2px}
+.stats{display:flex;gap:8px;align-items:center}
+.pill{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700}
+.pill-done{background:#059669;color:white}
+.pill-pend{background:#374151;color:#9ca3af}
+.pill-pct{background:#1e40af;color:#bfdbfe}
+#main{display:flex;flex:1;overflow:hidden}
+#sidebar{width:290px;background:#fff;border-right:1px solid #e2e8f0;overflow-y:auto;flex-shrink:0}
+.sec-head{padding:10px 14px 6px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#64748b;position:sticky;top:0;background:#fff;border-bottom:1px solid #f1f5f9;z-index:10}
+.itin-item{padding:9px 14px;cursor:pointer;border-bottom:1px solid #f8fafc;display:flex;align-items:flex-start;gap:9px;transition:background .12s}
+.itin-item:hover{background:#f0f9ff}
+.itin-item.active{background:#dbeafe}
+.dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.itin-info{flex:1;min-width:0}
+.itin-num{font-size:10px;color:#94a3b8;font-weight:700}
+.itin-title{font-size:12px;font-weight:700;color:#1e293b;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.itin-arr{font-size:10px;color:#64748b;margin-top:1px}
+.badge{font-size:10px;padding:2px 7px;border-radius:10px;flex-shrink:0;margin-top:3px;font-weight:600}
+.b-done{background:#d1fae5;color:#065f46}
+.b-pend{background:#f1f5f9;color:#94a3b8}
+#map{flex:1}
+.leaflet-popup-content-wrapper{border-radius:10px;padding:0;overflow:hidden;max-width:270px;box-shadow:0 4px 20px rgba(0,0,0,0.2)}
+.leaflet-popup-content{margin:0;line-height:1}
+.pop-head{padding:12px 14px 8px;color:white}
+.pop-num{font-size:10px;opacity:.75;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.pop-title{font-size:14px;font-weight:800;line-height:1.2;margin-top:2px}
+.pop-sub{font-size:11px;opacity:.85;margin-top:4px;line-height:1.35}
+.pop-body{padding:10px 14px 12px;background:white}
+.pop-arr{font-size:10px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:7px}
+.pop-stops{list-style:none}
+.pop-stops li{font-size:11px;color:#374151;padding:2px 0 2px 12px;position:relative;line-height:1.3}
+.pop-stops li::before{content:'›';position:absolute;left:0;color:#94a3b8;font-weight:700}
+.pop-status{margin-top:9px;font-size:10px;padding:3px 8px;border-radius:10px;display:inline-block;font-weight:700}
+.ps-done{background:#d1fae5;color:#065f46}
+.ps-pend{background:#fef3c7;color:#92400e}
+</style>
+</head>
+<body>
+<div id="header">
+  <div>
+    <h1 id="hdr-title">📍 SA París — Tauler d'Itineraris</h1>
+    <div class="sub" id="hdr-sub"></div>
+  </div>
+  <div class="stats" id="stats"></div>
+</div>
+<div id="main">
+  <div id="sidebar">
+    <div class="sec-head" id="head-done"></div>
+    <div id="list-done"></div>
+    <div class="sec-head" id="head-pend"></div>
+    <div id="list-pend"></div>
+  </div>
+  <div id="map"></div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="data.js"></script>
+<script>
+// ── Títols dinàmics des de CONFIG ────────────────────────────────────────────
+document.getElementById('page-title').textContent = `SA París ${CONFIG.any} — Tauler d'Itineraris`;
+document.getElementById('hdr-title').textContent  = `📍 SA París ${CONFIG.any} · Tauler d'Itineraris`;
+document.getElementById('hdr-sub').textContent    = `${CONFIG.escola} · ${CONFIG.viatge}`;
+
+// ── Stats dinàmics ────────────────────────────────────────────────────────────
+const done  = ITINERARIS_DATA.filter(d => d.status === 'done').length;
+const pend  = ITINERARIS_DATA.filter(d => d.status === 'pending').length;
+const total = ITINERARIS_DATA.length;
+const pct   = Math.round(done / total * 100);
+
+document.getElementById('stats').innerHTML = `
+  <div class="pill pill-done">✅ ${done} completats</div>
+  <div class="pill pill-pend">⏳ ${pend} pendents</div>
+  <div class="pill pill-pct">${pct}%</div>`;
+document.getElementById('head-done').textContent = `✅ Itineraris completats (${done})`;
+document.getElementById('head-pend').textContent = `⏳ Pendents de generar (${pend})`;
+
+// ── Mapa ──────────────────────────────────────────────────────────────────────
+const map = L.map('map').setView([48.860, 2.347], 13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© <a href="https://www.openstreetmap.org">OpenStreetMap</a>',
+  maxZoom: 19
+}).addTo(map);
+
+const layers = {};
+
+function makeStopIcon(color, num) {
+  return L.divIcon({
+    className: '',
+    html: `<div style="width:20px;height:20px;border-radius:50%;background:${color};border:2px solid white;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:white;box-shadow:0 1px 4px rgba(0,0,0,0.5)">${num}</div>`,
+    iconSize: [20,20], iconAnchor: [10,10]
+  });
+}
+
+function makePendingIcon(num) {
+  return L.divIcon({
+    className: '',
+    html: `<div style="width:28px;height:28px;border-radius:50%;background:#f8fafc;border:2.5px dashed #94a3b8;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#94a3b8;box-shadow:0 1px 3px rgba(0,0,0,0.2)">${num}</div>`,
+    iconSize: [28,28], iconAnchor: [14,14]
+  });
+}
+
+function makePopup(d) {
+  const stopsHtml = (d.stops || []).map(s => `<li>${s}</li>`).join('');
+  const statusHtml = d.status === 'done'
+    ? `<span class="pop-status ps-done">✅ Plantilla A · B · KML generats</span>`
+    : `<span class="pop-status ps-pend">⏳ Pendent de generar</span>`;
+  return `
+    <div class="pop-head" style="background:${d.color || '#6b7280'}">
+      <div class="pop-num">Itinerari ${d.num}</div>
+      <div class="pop-title">${d.titol}</div>
+      ${d.subtitol ? `<div class="pop-sub">${d.subtitol}</div>` : ''}
+    </div>
+    <div class="pop-body">
+      <div class="pop-arr">${d.arr}</div>
+      ${d.stops ? `<ul class="pop-stops">${stopsHtml}</ul>` : ''}
+      ${d.note ? `<div style="font-size:11px;color:#94a3b8;margin-top:6px">${d.note}</div>` : ''}
+      ${statusHtml}
+    </div>`;
+}
+
+function zoomTo(d) {
+  document.querySelectorAll('.itin-item').forEach(el => el.classList.remove('active'));
+  const el = document.getElementById('item-' + d.num);
+  if (el) { el.classList.add('active'); el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+
+  if (d.status === 'done' && d.route) {
+    map.fitBounds(L.latLngBounds(d.route), { padding: [40, 40] });
+    layers[d.num]?.polyline?.openPopup();
+  } else if (d.center) {
+    map.setView(d.center, 15);
+    layers[d.num]?.marker?.openPopup();
+  }
+}
+
+// Renderitza capes
+ITINERARIS_DATA.forEach(d => {
+  layers[d.num] = {};
+  if (d.status === 'done') {
+    const poly = L.polyline(d.route, { color: d.color, weight: 4, opacity: .85 }).addTo(map);
+    poly.bindPopup(makePopup(d), { maxWidth: 270 });
+    poly.on('click', () => zoomTo(d));
+    layers[d.num].polyline = poly;
+
+    d.route.forEach((coord, i) => {
+      const m = L.marker(coord, { icon: makeStopIcon(d.color, i) }).addTo(map);
+      m.bindTooltip(d.stops?.[i] ?? `Punt ${i}`, { direction: 'top', offset: [0, -8] });
+      m.on('click', () => { poly.openPopup(); zoomTo(d); });
+    });
+  } else {
+    const m = L.marker(d.center, { icon: makePendingIcon(d.num) }).addTo(map);
+    m.bindPopup(makePopup(d), { maxWidth: 270 });
+    layers[d.num].marker = m;
+    m.on('click', () => zoomTo(d));
+  }
+});
+
+// Renderitza sidebar
+const listDone = document.getElementById('list-done');
+const listPend = document.getElementById('list-pend');
+
+ITINERARIS_DATA.forEach(d => {
+  const div = document.createElement('div');
+  div.className = 'itin-item';
+  div.id = 'item-' + d.num;
+  div.innerHTML = `
+    <div class="dot" style="${d.status === 'done' ? 'background:' + d.color : 'background:#e2e8f0;border:2px dashed #94a3b8'}"></div>
+    <div class="itin-info">
+      <div class="itin-num">Itinerari ${d.num}</div>
+      <div class="itin-title">${d.titol}</div>
+      <div class="itin-arr">${d.arr}</div>
+    </div>
+    <div class="badge ${d.status === 'done' ? 'b-done' : 'b-pend'}">${d.status === 'done' ? '✅' : '⏳'}</div>`;
+  div.addEventListener('click', () => zoomTo(d));
+  if (d.status === 'done') listDone.appendChild(div);
+  else listPend.appendChild(div);
+});
+</script>
+</body>
+</html>
